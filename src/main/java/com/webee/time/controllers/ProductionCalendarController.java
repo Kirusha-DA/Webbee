@@ -2,12 +2,15 @@ package com.webee.time.controllers;
 
 import org.springframework.web.bind.annotation.RestController;
 
+import com.webee.time.dtos.DateWithTimeZone;
 import com.webee.time.services.ProductionCalendarService;
 
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -22,16 +25,17 @@ public class ProductionCalendarController {
         this.productionCalendarService = productionCalendarService;
     }
 
-    @GetMapping("/isweekend")
+    @GetMapping("/isweekend/2024/may")
     public boolean checkIfDateIsWeekend(@RequestParam Integer day) {
         return productionCalendarService.checkIfDateIsWeekend(day);
     }
 
-    @GetMapping("/isfreetime")
+    @PostMapping("/isfreetime")
     public boolean checkIfDateIsWeekendAndNotWorkingHours(
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date
+        @RequestBody DateWithTimeZone date
     ) {
-        return productionCalendarService.checkIfDateIsWeekendAndNotWorkingHours(date);
+        ZonedDateTime zonedDate = date.getDate().atZone(ZoneId.of(date.getTimezone()));
+        return productionCalendarService.checkIfDateIsWeekendAndNotWorkingHoursInMoscowTZ(zonedDate);
     }
     
 }

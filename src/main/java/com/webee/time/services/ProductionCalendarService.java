@@ -5,13 +5,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
+import lombok.extern.log4j.Log4j2;
+
+
 @Service
+@Log4j2
 public class ProductionCalendarService {
     final private Set<DayOfWeek> weekends = new HashSet<>(Arrays.asList(
         DayOfWeek.SATURDAY,
@@ -40,19 +45,21 @@ public class ProductionCalendarService {
         return weekendDaysDuringMay2024.contains(date);
     }
 
-    public boolean checkIfDateIsWeekendAndNotWorkingHours(LocalDateTime date) {
-        date.atZone(ZoneId.of("Europe/Moscow"));
+    public boolean checkIfDateIsWeekendAndNotWorkingHoursInMoscowTZ(ZonedDateTime zonedDateTime) {
+        ZonedDateTime dateWithMoscowTZ = zonedDateTime.withZoneSameInstant(ZoneId.of("Europe/Moscow"));
+      
+        log.info(dateWithMoscowTZ);
+        
+        boolean isDateIsWorkingDayAndBetween9And18 = !checkIfDateIsWeekend(dateWithMoscowTZ) && checkIfDateIsBetween9And18Hours(dateWithMoscowTZ);
 
-        boolean isDateIsWorkingDayAndBetween9And18 = !checkIfDateIsWeekend(date) && checkIfDateIsBetween9And18Hours(date);
-
-        if (!isDateIsWorkingDayAndBetween9And18 || checkIfDateIsHoliday(date)) {
+        if (!isDateIsWorkingDayAndBetween9And18 || checkIfDateIsHoliday(dateWithMoscowTZ)) {
             return true;
         } 
 
         return false;
     }
 
-    private boolean checkIfDateIsHoliday(LocalDateTime date) {
+    private boolean checkIfDateIsHoliday(ZonedDateTime date) {
         Integer dayOfMonth = date.getDayOfMonth();
         switch (date.getMonth()) {
             case JANUARY:
@@ -123,7 +130,7 @@ public class ProductionCalendarService {
         return false;
     }
 
-    private boolean checkIfDateIsWeekend(LocalDateTime date) {
+    private boolean checkIfDateIsWeekend(ZonedDateTime date) {
         DayOfWeek dayOfWeek = date.getDayOfWeek();
         if (weekends.contains(dayOfWeek)) {
             return true;
@@ -131,9 +138,12 @@ public class ProductionCalendarService {
         return false;
     }
 
-    private boolean checkIfDateIsBetween9And18Hours(LocalDateTime date) {
-        Integer hour = date.getHour();
-        if (9 <= hour && hour <= 18) {
+    private boolean checkIfDateIsBetween9And18Hours(ZonedDateTime zonedDate) {
+        LocalDateTime date9Hours = LocalDateTime.of(zonedDate.getYear(), zonedDate.getMonth(), zonedDate.getDayOfMonth(), 9, 0, 1);
+        LocalDateTime date18Hours = LocalDateTime.of(zonedDate.getYear(), zonedDate.getMonth(), zonedDate.getDayOfMonth(), 18, 0, 1);
+        LocalDateTime date = zonedDate.toLocalDateTime();
+
+        if (date.isAfter(date9Hours) && date.isBefore(date18Hours)) {
             return true;
         }
         return false;
